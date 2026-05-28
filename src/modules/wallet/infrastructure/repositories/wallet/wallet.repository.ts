@@ -44,6 +44,10 @@ export class WalletRepository {
     return ok(this.wallets.get(walletId));
   }
 
+  async listAll(): Promise<Wallet[]> {
+    return [...this.wallets.values()];
+  }
+
   async setBalance(
     walletId: string,
     balance: Money,
