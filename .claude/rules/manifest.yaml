@@ -1,0 +1,177 @@
+version: 1
+project: match-backend
+description: Реестр правил match-backend. Используется командами /spec-* для навигации по спеке.
+
+# ────────────────────────────────────────────────────────────
+# Спецификации: id → файл → вес для скоринга
+# ────────────────────────────────────────────────────────────
+specs:
+  R01:
+    file: 01-architecture.md
+    title: Архитектура, слои, bounded contexts
+    weight: 1.5
+  R02:
+    file: 02-result-and-errors.md
+    title: Result<T,E>, error codes, neverthrow
+    weight: 1.5
+  R03:
+    file: 03-use-cases-and-handlers.md
+    title: UseCaseHandler, правила handler'а
+    weight: 1.2
+  R04:
+    file: 04-repositories-and-persistence.md
+    title: Repositories, entity, миграции
+    weight: 1.2
+  R05:
+    file: 05-transactions-and-locks.md
+    title: Транзакции, Redlock, advisory lock
+    weight: 1.0
+  R06:
+    file: 06-outbox-and-events.md
+    title: Outbox, event contracts
+    weight: 1.0
+  R07:
+    file: 07-encryption-and-secrets.md
+    title: Envelope encryption, AAD, KMS, secrets
+    weight: 1.5
+  R08:
+    file: 08-api-and-dto.md
+    title: Controllers, presentation, DTO, Swagger
+    weight: 1.0
+  R09:
+    file: 09-config-and-env.md
+    title: validateEnv, кросс-слойная консистентность
+    weight: 0.8
+  R10:
+    file: 10-code-style.md
+    title: TypeScript, naming, размер, комментарии
+    weight: 0.8
+  R11:
+    file: 11-state-machines.md
+    title: Явные FSM, валидация переходов
+    weight: 1.3
+  R12:
+    file: 12-code-voice.md
+    title: Code voice — идиоматика проекта, формы декомпозиции, ритм
+    weight: 1.2
+  R13:
+    file: 13-dto-patterns.md
+    title: DTO patterns — naming, структура, валидация, compliance cards
+    weight: 1.3
+  R14:
+    file: 14-use-case-boundaries.md
+    title: Use-case boundaries — handler как точка сборки, без infra-подробностей
+    weight: 1.4
+  R15:
+    file: 15-logging-and-observability.md
+    title: Logging & observability — pino + CLS, event-taxonomy, прямой logger в теле метода, redact, scoring per слой
+    weight: 1.2
+
+# ────────────────────────────────────────────────────────────
+# Тип файла → какие спеки применимы
+# Используется /spec-check <path>
+# ────────────────────────────────────────────────────────────
+file_types:
+  handler:
+    pattern: "src/modules/**/use-case/**/*.handler.ts"
+    reference: src/modules/auth/use-case/presentation/sign-in/sign-in.handler.ts
+    simple_reference: src/modules/user/use-case/create-user/create-user.handler.ts
+    logging_reference: src/modules/partner/use-case/onboarding/upload-partner-documents/upload-partner-documents.handler.ts
+    applies: [R02, R03, R05, R10, R12, R14, R15]
+  domain_service:
+    pattern: "src/modules/**/domain/services/*.service.ts"
+    applies: [R01, R02, R10, R12, R14]
+  repository:
+    pattern: "src/modules/**/infrastructure/repositories/**/*.repository.ts"
+    reference: src/modules/user/infrastructure/repositories/user/user.repository.ts
+    applies: [R02, R04, R10, R12, R15]
+  entity:
+    pattern: "src/modules/**/infrastructure/repositories/**/*.entity.ts"
+    reference: src/modules/user/infrastructure/repositories/user/user.entity.ts
+    applies: [R04, R10, R12]
+  migration:
+    pattern: "src/infrastructure/db/migrations/*.ts"
+    reference: src/infrastructure/db/migrations/1775751093754-partner-onboarding.ts
+    applies: [R04, R12]
+  controller:
+    pattern: "src/modules/**/presentation/**/*.controller.ts"
+    reference: src/modules/auth/presentation/auth-presentation.controller.ts
+    applies: [R08, R10, R12]
+  presentation_service:
+    pattern: "src/modules/**/presentation/*-presentation.service.ts"
+    reference: src/modules/auth/presentation/auth-presentation.service.ts
+    applies: [R02, R08, R10, R12, R14]
+  dto:
+    pattern: "src/modules/**/presentation/dto/**/*.dto.ts"
+    reference: src/modules/auth/presentation/dto/sign-in.dto.ts
+    # nested/component/wrapper compliance-card references removed with the dead
+    # intent compliance-package; repoint to customer compliance DTOs once built.
+    applies: [R08, R10, R12, R13]
+  config:
+    pattern: "src/**/*.config.ts"
+    reference: src/infrastructure/db/db.config.ts
+    applies: [R09, R12]
+  domain:
+    pattern: "src/modules/**/domain/**/*.ts"
+    reference: src/modules/user/domain/user.ts
+    applies: [R01, R10, R11, R12]
+  fsm:
+    pattern: "src/modules/**/domain/*.fsm.ts"
+    applies: [R11]
+  external_service:
+    pattern: "src/modules/**/external/*-external.service.ts"
+    reference: src/modules/user/external/user-external.service.ts
+    applies: [R01, R02, R12]
+  outbox_event:
+    pattern: "src/modules/**/domain/events/*.event.ts"
+    applies: [R06]
+  infrastructure_service:
+    pattern: "src/infrastructure/**/*.service.ts"
+    reference: src/infrastructure/redis/redlock/redlock.service.ts
+    logging_reference: src/infrastructure/s3/s3.service.ts
+    applies: [R02, R05, R10, R12, R15]
+
+# ────────────────────────────────────────────────────────────
+# Severity: как считать нарушение
+# ────────────────────────────────────────────────────────────
+severity:
+  error:
+    description: Критическое нарушение — блокирует merge
+    score_penalty: -3
+  warning:
+    description: Нарушение, не блокирующее merge
+    score_penalty: -1
+  info:
+    description: Заметка, не влияет на скор
+    score_penalty: 0
+
+# ────────────────────────────────────────────────────────────
+# Скоринг
+# ────────────────────────────────────────────────────────────
+scoring:
+  max_per_spec: 10
+  overall_scale: 100
+  formula: "weighted average of per-spec scores, rescaled to 0-100"
+  degradation_threshold: 3  # падение overall score на >3 пункта — alert в ревью
+
+# ────────────────────────────────────────────────────────────
+# Generation protocol (для новых файлов)
+# ────────────────────────────────────────────────────────────
+generation:
+  protocol:
+    - step: determine_file_type
+      description: "Определи тип файла через file_types → pattern"
+    - step: read_reference
+      description: "Прочитай reference (и simple_reference если применимо) из file_types"
+    - step: read_specs
+      description: "Прочитай applies спеки (только новые, если уже в контексте — пропусти)"
+    - step: copy_structure
+      description: "Скопируй структуру reference буквально: импорты, порядок блоков, форму конструктора"
+    - step: adapt
+      description: "Переименуй, адаптируй под задачу, сохраняя voice"
+    - step: self_check
+      description: "Пройди по чек-листу в 12-code-voice.md"
+    - step: spec_check
+      description: "Запусти /spec-check <path> на созданном файле"
+    - step: fix_violations
+      description: "Если есть нарушения — исправь и повтори spec-check"

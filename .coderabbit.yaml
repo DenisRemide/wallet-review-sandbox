@@ -1,0 +1,50 @@
+# CodeRabbit configuration — https://docs.coderabbit.ai
+# This project is spec-first. The normative rules live in .claude/rules/ (R01–R15).
+language: en-US
+early_access: false
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_instructions:
+    - path: 'src/**/*.ts'
+      instructions: >
+        This repository is spec-first. Treat .claude/rules/ (R01–R15) as the
+        source of truth and flag any violation, citing the rule id. Core
+        invariants: errors are values via neverthrow Result<T,E> with no throw in
+        business logic (R02); error codes follow <OPERATION>_<SUB>_<REASON> with
+        no bare ERROR/FAILED (R02); money is a decimal string handled via
+        bignumber.js, never a JS number; no hardcoded secrets and never log
+        secrets/API keys/PII (R07, R15); no console.* and no dead/commented code
+        (R10); explicit return types on public methods and no `any` (R10).
+    - path: 'src/**/*.handler.ts'
+      instructions: >
+        Use-case handler (R03, R14). Must implement UseCaseHandler with a single
+        run() returning Result<T,E>. No throw, no try/catch (except low-level
+        wrappers), no direct DB/lock access outside repositories/services. Money
+        arithmetic must use bignumber.js. Non-idempotent, balance-changing
+        operations MUST run under a lock and honour the idempotency key (R05).
+        Verify resource ownership/authorization before mutating. Log domain
+        events from the event enum (R15 LOG-02), never console.* or string events.
+    - path: 'src/**/*.repository.ts'
+      instructions: >
+        Repository (R04). One error-code type per method (<Repo><Method>ErrorCode).
+        Return Result; wrap throwable persistence calls. UPDATE-by-id methods need
+        a *_TARGET_MISSING code. Do not start transactions here.
+    - path: 'src/**/*.controller.ts'
+      instructions: >
+        Controller (R08). Must delegate to a presentation-service, not call
+        handlers directly and not handle Result. Guard endpoints and validate
+        DTOs. No business logic, no manual logging (R15 LOG-04).
+    - path: 'src/**/dto/*.dto.ts'
+      instructions: >
+        DTO (R08, R13). Validate every field with class-validator. Numeric/money
+        inputs must reject negative and malformed values.
+  auto_review:
+    enabled: true
+    drafts: false
+chat:
+  auto_reply: true

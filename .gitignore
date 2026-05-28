@@ -1,0 +1,29 @@
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+
+# IDEs and editors
+/.idea
+.vscode/
+
+# dotenv
+.env
+.env.local
+
+# temp
+.tmp
+tmp
+
+# Local-only evaluation ground truth — NEVER push (review tools must not see the answer key)
+/EVAL
