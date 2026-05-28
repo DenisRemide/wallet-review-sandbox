@@ -1,0 +1,60 @@
+# Project-specific Semgrep rules encoding the mechanical invariants from
+# .claude/rules/ (R02/R07/R10/R15). These are convention checks a team would
+# maintain; semantic defects (authorization, money math, concurrency,
+# idempotency) are out of scope for pattern matching and need a reasoning
+# reviewer.
+rules:
+  - id: no-console-in-src
+    languages: [typescript]
+    severity: WARNING
+    message: >
+      R10 / R15 LOG-10: console.* bypasses the logger (no requestId, not
+      greppable). Use the Nest Logger with an event enum.
+    paths:
+      exclude:
+        - "*.spec.ts"
+    patterns:
+      - pattern-either:
+          - pattern: console.log(...)
+          - pattern: console.error(...)
+          - pattern: console.warn(...)
+
+  - id: no-throw-in-handler
+    languages: [typescript]
+    severity: ERROR
+    message: >
+      R02 §1: handlers must return Result<T,E>, never throw in business logic.
+    paths:
+      include:
+        - "*.handler.ts"
+    pattern: throw new $E(...)
+
+  - id: no-unsafe-unwrap
+    languages: [typescript]
+    severity: ERROR
+    message: >
+      R02 §4/§5: _unsafeUnwrap()/_unsafeUnwrapErr() ignores the error branch of a
+      Result. Handle it with isErr() / isOk().
+    paths:
+      exclude:
+        - "*.spec.ts"
+    pattern-either:
+      - pattern: $X._unsafeUnwrap()
+      - pattern: $X._unsafeUnwrapErr()
+
+  - id: hardcoded-secret-fallback
+    languages: [typescript]
+    severity: ERROR
+    message: >
+      R07: hardcoded secret fallback. Secrets come from validated env only; fail
+      fast if missing, never fall back to an in-code literal.
+    pattern-regex: 'process\.env\.[A-Za-z_]+\s*\|\|\s*[''"][^''"]+[''"]'
+
+  - id: explicit-any-type
+    languages: [typescript]
+    severity: WARNING
+    message: "R10: avoid `any`; use unknown + narrowing or a concrete type."
+    paths:
+      exclude:
+        - "*.spec.ts"
+    pattern-regex: ':\s*any\b'
