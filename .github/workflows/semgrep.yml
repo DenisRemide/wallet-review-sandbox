@@ -18,9 +18,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # Diff-aware scan: project rules (.semgrep.yml) + registry auto rules.
-      # SEMGREP_APP_TOKEN uploads findings to the Semgrep platform, where
-      # Assistant (AI) triages them and posts PR comments.
-      - run: semgrep ci --config ./.semgrep.yml --config auto
+      # Logged in (SEMGREP_APP_TOKEN), so rules come from the semgrep.dev policy
+      # (--config is not allowed with a token). Add the org custom rules to the
+      # Rule board in Comment/Block mode for them to surface here + via Assistant.
+      - run: semgrep ci
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
