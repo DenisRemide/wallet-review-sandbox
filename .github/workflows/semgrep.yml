@@ -1,0 +1,26 @@
+name: Semgrep
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  semgrep:
+    name: semgrep ci
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Logged in (SEMGREP_APP_TOKEN), so rules come from the semgrep.dev policy
+      # (--config is not allowed with a token). Add the org custom rules to the
+      # Rule board in Comment/Block mode for them to surface here + via Assistant.
+      - run: semgrep ci
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
