@@ -1,0 +1,26 @@
+name: Semgrep
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  semgrep:
+    name: semgrep ci
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    if: github.actor != 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Diff-aware scan: project rules (.semgrep.yml) + registry auto rules.
+      # SEMGREP_APP_TOKEN uploads findings to the Semgrep platform, where
+      # Assistant (AI) triages them and posts PR comments.
+      - run: semgrep ci --config ./.semgrep.yml --config auto
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
