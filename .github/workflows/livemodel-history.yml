@@ -1,0 +1,109 @@
+name: Live Model history
+
+# What this reports: the first-parent commits of the default branch and the
+# per-file line counts of each, plus one convention this repository declares
+# about how they are read. No rate, no percentile and no verdict — those are
+# computed where the rows are read, so a rule changed there re-answers a report
+# sent from here months ago.
+#
+# The Live Model install measuring this repository has no working copy of it and
+# does not fetch one. This runs where the repository already is, with the script
+# the same pull request added — nothing is installed, no other repository is
+# fetched, and no secret exists for any of it.
+
+on:
+  schedule:
+    # The primary trigger. A push is faster but not dependable: a merge made
+    # with GITHUB_TOKEN — auto-merge, a release bot, Dependabot — starts no push
+    # workflow at all, so a repository relying on pushes alone would go quiet
+    # without anything saying so.
+    - cron: '17 4 * * *'
+  push:
+    # Latency, not correctness: the schedule above already covers this branch.
+    # `on:` takes no expressions, so these are the two common names written out
+    # — a repository whose default branch is called something else changes this
+    # line, and until it does its reports are a day old rather than absent.
+    branches: [main, master]
+  workflow_dispatch:
+
+# One report at a time, and the newer one wins. Each report replaces the whole
+# stored history rather than adding to it, so a cancelled run costs nothing —
+# the next one sends everything again.
+concurrency:
+  group: livemodel-history
+  cancel-in-progress: true
+
+# Read the repository, and prove to Live Model which workflow is speaking.
+# Nothing is written anywhere, here or there.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    env:
+      LIVEMODEL_API_URL: ${{ vars.LIVEMODEL_API_URL }}
+    steps:
+      # Before anything costs time: a courier pointed at nothing should say so
+      # in its first step and name the fix, not walk the whole history and die
+      # at the last one with a curl error naming nothing.
+      - name: Require the reporting address
+        run: |
+          set -euo pipefail
+          if [ -z "$LIVEMODEL_API_URL" ]; then
+            echo "::error::The repository variable LIVEMODEL_API_URL is not set." \
+              "Connecting the repository from the Live Model dashboard sets it;" \
+              "otherwise set it by hand to the install's origin."
+            exit 1
+          fi
+
+      # fetch-depth: 0 — the whole point is the history, and a shallow clone
+      # has none of it. Reported from a shallow clone the figures would be
+      # small, plausible and wrong.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The script travels with this workflow in the same pull request. It
+      # reads the repository, computes nothing, and needs only git and Python 3
+      # — both on every GitHub-hosted runner.
+      #
+      # To declare the line above which a change stops being reviewable in one
+      # sitting, append: --observable-threshold <lines>. Left out, Live Model
+      # measures against its own convention of 400 significant lines and says
+      # so. A declared line moves where a fixed total is cut, never what enters
+      # the total, and every figure it moves names this repository as the party
+      # that drew it.
+      - name: Walk the branch
+        env:
+          # A push event names the default branch in its payload. A scheduled
+          # run carries no payload — but it always runs on the default branch,
+          # so the ref itself is the name.
+          BRANCH: ${{ github.event.repository.default_branch || github.ref_name }}
+        run: |
+          set -euo pipefail
+          python3 .livemodel/history_report.py --repo . --branch "$BRANCH" --out history.json
+
+      # The token is minted here and used once. It is GitHub's statement about
+      # which workflow of which repository is speaking; there is no secret in
+      # this repository for it, and none should be added.
+      - name: Report the history to Live Model
+        env:
+          # What the install's door verifies the token against. Change it only
+          # if that install sets LM_GITHUB_OIDC_AUDIENCE to something else.
+          AUDIENCE: live-model
+        run: |
+          set -euo pipefail
+          jq -n \
+            --slurpfile history history.json \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '{repository: $repository, history: $history[0]}' > body.json
+          TOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE" | jq -r .value)
+          curl -sS --fail-with-body -X POST \
+            "$LIVEMODEL_API_URL/api/github/history" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            --data-binary @body.json
