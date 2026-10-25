@@ -46,5 +46,16 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+  pre_merge_checks:
+    title:
+      mode: "warning"
+      requirements: "Conventional commit style: <type>(<scope>): <description>."
+    custom_checks:
+      - name: "Money stays decimal"
+        mode: "warning"
+        instructions: "Fail if any changed line converts a money amount or balance to a JS number (Number(), parseFloat, parseInt, unary +) or compares money as numbers. Pass if all money arithmetic and comparison goes through src/lib/money helpers."
+      - name: "Wallet ownership verified"
+        mode: "error"
+        instructions: "Fail if a new or changed use-case handler reads or mutates a wallet, or its transactions, without checking that the wallet belongs to the calling partner (wallet.partnerId === params.partnerId) before returning data or writing. Pass if every such path verifies ownership."
 chat:
   auto_reply: true
