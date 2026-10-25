@@ -21,6 +21,7 @@ import {
   CreditWalletDtoReq,
   CreditWalletDtoRes,
 } from './dto/credit-wallet.dto';
+import { DebitWalletDtoReq, DebitWalletDtoRes } from './dto/debit-wallet.dto';
 import { WalletTransactionDtoRes } from './dto/list-wallet-transactions.dto';
 
 @Controller('wallets')
@@ -78,6 +79,24 @@ export class WalletPresentationController {
       partnerId,
       walletId,
       limit,
+    );
+  }
+
+  @Post(':walletId/debit')
+  @ApiResponse({ type: DebitWalletDtoRes })
+  @ApiOperation({
+    operationId: 'debitWallet',
+    summary: 'Withdraw funds from a wallet owned by the caller',
+  })
+  async debitWallet(
+    @CurrentPartnerId() partnerId: string,
+    @Param('walletId') walletId: string,
+    @Body() dto: DebitWalletDtoReq,
+  ): Promise<DebitWalletDtoRes> {
+    return this.walletPresentationService.debitWallet(
+      partnerId,
+      walletId,
+      dto,
     );
   }
 }

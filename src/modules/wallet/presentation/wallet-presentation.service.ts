@@ -8,12 +8,14 @@ import {
 } from '@nestjs/common';
 import { GetWalletBalanceHandler } from '../use-case/get-wallet-balance/get-wallet-balance.handler';
 import { CreditWalletHandler } from '../use-case/credit-wallet/credit-wallet.handler';
+import { DebitWalletHandler } from '../use-case/debit-wallet/debit-wallet.handler';
 import { ListWalletTransactionsHandler } from '../use-case/list-wallet-transactions/list-wallet-transactions.handler';
 import { GetWalletBalanceDtoRes } from './dto/get-wallet-balance.dto';
 import {
   CreditWalletDtoReq,
   CreditWalletDtoRes,
 } from './dto/credit-wallet.dto';
+import { DebitWalletDtoReq, DebitWalletDtoRes } from './dto/debit-wallet.dto';
 import { WalletTransactionDtoRes } from './dto/list-wallet-transactions.dto';
 
 @Injectable()
@@ -21,6 +23,7 @@ export class WalletPresentationService {
   constructor(
     private readonly getWalletBalanceHandler: GetWalletBalanceHandler,
     private readonly creditWalletHandler: CreditWalletHandler,
+    private readonly debitWalletHandler: DebitWalletHandler,
     private readonly listWalletTransactionsHandler: ListWalletTransactionsHandler,
   ) {}
 
@@ -44,6 +47,24 @@ export class WalletPresentationService {
       amount: transaction.amount,
       createdAt: transaction.createdAt.toISOString(),
     }));
+  }
+
+  async debitWallet(
+    partnerId: string,
+    walletId: string,
+    dto: DebitWalletDtoReq,
+  ): Promise<DebitWalletDtoRes> {
+    const result = await this.debitWalletHandler.run({
+      walletId,
+      partnerId,
+      amount: dto.amount,
+      idempotencyKey: dto.idempotencyKey,
+    });
+    if (result.isErr()) {
+      throw this.toHttpException(result.error);
+    }
+
+    return result.value;
   }
 
   async getBalance(

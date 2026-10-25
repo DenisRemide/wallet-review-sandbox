@@ -46,6 +46,24 @@ npm run start:dev  # http://localhost:3000, Swagger at /openapi
 Every wallet endpoint is guarded by `x-api-key`. Demo keys: `demo-key-acme`
 (owns `wallet-acme-usd`), `demo-key-globex` (owns `wallet-globex-usd`).
 
+## Errors
+
+Use cases return error codes as values; the presentation layer maps them to HTTP:
+
+| Code suffix | HTTP status |
+| --- | --- |
+| `_NOT_FOUND` | 404 |
+| `_FORBIDDEN` | 403 |
+| `_DB_ERROR`, `_TARGET_MISSING`, `LOCK_NOT_ACQUIRED` | 500 |
+| anything else | 400 |
+
+Codes follow `<OPERATION>_<SUB>_<REASON>`, e.g. `CREDIT_WALLET_INVALID_AMOUNT`.
+
+## Limits
+
+- Amounts are decimal strings with at most 2 fraction digits.
+- Idempotency keys are 8–128 characters; a repeated key returns the first result.
+
 ## Review rules
 
 This repository is **spec-first**: code is checked against the rules in
