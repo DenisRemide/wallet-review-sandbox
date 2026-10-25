@@ -5,6 +5,7 @@ import { LockService } from '../../../../lib/concurrency/lock.service';
 import { IdempotencyStore } from '../../../../lib/idempotency/idempotency.store';
 import { addMoney, isPositiveMoney, Money } from '../../../../lib/money/money';
 import { WalletEvent } from '../../../../infrastructure/logger/wallet-event';
+import { PartnerWebhookNotifier } from '../../../partner/infrastructure/partner-webhook.notifier';
 import { Wallet } from '../../domain/wallet';
 import { WalletRepository } from '../../infrastructure/repositories/wallet/wallet.repository';
 import { CreditWalletErrorCode } from './credit-wallet.errors';
@@ -32,6 +33,7 @@ export class CreditWalletHandler implements UseCaseHandler<
     private readonly walletRepository: WalletRepository,
     private readonly lockService: LockService,
     private readonly idempotencyStore: IdempotencyStore<Wallet>,
+    private readonly partnerWebhookNotifier: PartnerWebhookNotifier,
   ) {}
 
   async run(
@@ -97,6 +99,12 @@ export class CreditWalletHandler implements UseCaseHandler<
     this.logger.log({
       event: WalletEvent.CREDIT_PERSISTED,
       walletId: creditResult.value.id,
+    });
+
+    this.partnerWebhookNotifier.notifyCredited({
+      partnerId: params.partnerId,
+      walletId: creditResult.value.id,
+      balance: creditResult.value.balance,
     });
 
     return ok({

@@ -18,4 +18,8 @@ export class PartnerRegistry {
   findByApiKey(apiKey: string): Partner | undefined {
     return this.byApiKey.get(apiKey);
   }
+
+  findById(partnerId: string): Partner | undefined {
+    return SEED_PARTNERS.find((partner) => partner.id === partnerId);
+  }
 }
