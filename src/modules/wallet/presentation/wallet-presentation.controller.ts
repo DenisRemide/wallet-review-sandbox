@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiOperation,
   ApiResponse,
@@ -14,6 +22,7 @@ import {
   CreditWalletDtoRes,
 } from './dto/credit-wallet.dto';
 import { DebitWalletDtoReq, DebitWalletDtoRes } from './dto/debit-wallet.dto';
+import { WalletTransactionDtoRes } from './dto/list-wallet-transactions.dto';
 
 @Controller('wallets')
 @ApiTags('Wallet')
@@ -52,6 +61,24 @@ export class WalletPresentationController {
       partnerId,
       walletId,
       dto,
+    );
+  }
+
+  @Get(':walletId/transactions')
+  @ApiResponse({ type: [WalletTransactionDtoRes] })
+  @ApiOperation({
+    operationId: 'listWalletTransactions',
+    summary: 'List the latest transactions of a wallet',
+  })
+  async listWalletTransactions(
+    @CurrentPartnerId() partnerId: string,
+    @Param('walletId') walletId: string,
+    @Query('limit') limit?: string,
+  ): Promise<WalletTransactionDtoRes[]> {
+    return this.walletPresentationService.listTransactions(
+      partnerId,
+      walletId,
+      limit,
     );
   }
 

@@ -9,12 +9,14 @@ import {
 import { GetWalletBalanceHandler } from '../use-case/get-wallet-balance/get-wallet-balance.handler';
 import { CreditWalletHandler } from '../use-case/credit-wallet/credit-wallet.handler';
 import { DebitWalletHandler } from '../use-case/debit-wallet/debit-wallet.handler';
+import { ListWalletTransactionsHandler } from '../use-case/list-wallet-transactions/list-wallet-transactions.handler';
 import { GetWalletBalanceDtoRes } from './dto/get-wallet-balance.dto';
 import {
   CreditWalletDtoReq,
   CreditWalletDtoRes,
 } from './dto/credit-wallet.dto';
 import { DebitWalletDtoReq, DebitWalletDtoRes } from './dto/debit-wallet.dto';
+import { WalletTransactionDtoRes } from './dto/list-wallet-transactions.dto';
 
 @Injectable()
 export class WalletPresentationService {
@@ -22,7 +24,30 @@ export class WalletPresentationService {
     private readonly getWalletBalanceHandler: GetWalletBalanceHandler,
     private readonly creditWalletHandler: CreditWalletHandler,
     private readonly debitWalletHandler: DebitWalletHandler,
+    private readonly listWalletTransactionsHandler: ListWalletTransactionsHandler,
   ) {}
+
+  async listTransactions(
+    partnerId: string,
+    walletId: string,
+    limit: string | undefined,
+  ): Promise<WalletTransactionDtoRes[]> {
+    const result = await this.listWalletTransactionsHandler.run({
+      walletId,
+      partnerId,
+      limit: limit ? parseInt(limit) : undefined,
+    });
+    if (result.isErr()) {
+      throw this.toHttpException(result.error);
+    }
+
+    return result.value.map((transaction) => ({
+      id: transaction.id,
+      kind: transaction.kind,
+      amount: transaction.amount,
+      createdAt: transaction.createdAt.toISOString(),
+    }));
+  }
 
   async debitWallet(
     partnerId: string,
