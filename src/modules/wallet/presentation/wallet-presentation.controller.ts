@@ -13,6 +13,7 @@ import {
   CreditWalletDtoReq,
   CreditWalletDtoRes,
 } from './dto/credit-wallet.dto';
+import { DebitWalletDtoReq, DebitWalletDtoRes } from './dto/debit-wallet.dto';
 
 @Controller('wallets')
 @ApiTags('Wallet')
@@ -48,6 +49,24 @@ export class WalletPresentationController {
     @Body() dto: CreditWalletDtoReq,
   ): Promise<CreditWalletDtoRes> {
     return this.walletPresentationService.creditWallet(
+      partnerId,
+      walletId,
+      dto,
+    );
+  }
+
+  @Post(':walletId/debit')
+  @ApiResponse({ type: DebitWalletDtoRes })
+  @ApiOperation({
+    operationId: 'debitWallet',
+    summary: 'Withdraw funds from a wallet owned by the caller',
+  })
+  async debitWallet(
+    @CurrentPartnerId() partnerId: string,
+    @Param('walletId') walletId: string,
+    @Body() dto: DebitWalletDtoReq,
+  ): Promise<DebitWalletDtoRes> {
+    return this.walletPresentationService.debitWallet(
       partnerId,
       walletId,
       dto,
