@@ -5,5 +5,7 @@ export enum WalletEvent {
   CREDIT_RECEIVED = 'wallet.credit.received',
   CREDIT_PERSISTED = 'wallet.credit.persisted',
   CREDIT_FAILED = 'wallet.credit.failed',
+  DEBIT_RECEIVED = 'wallet.debit.received',
+  DEBIT_PERSISTED = 'wallet.debit.persisted',
   BALANCE_REQUESTED = 'wallet.balance.requested',
 }
